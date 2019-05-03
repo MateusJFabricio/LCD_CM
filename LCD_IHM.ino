@@ -1,4 +1,3 @@
-
 #include <LiquidCrystal.h>
 #include <EEPROM.h>
 
@@ -16,9 +15,15 @@ LiquidCrystal lcd(8,  //RS no digital 8
                    6,  //D6 no digital 6
                    7); //D7 no digital 7
                    
-String MenuMotor[4] = { "Motor 1", "Motor 2", "Sair", " "};
+String MenuMotor[4] = { "Motor 1", "Motor 2", "Sair ", " "};
 int menuMotorIndice = 0;
 int valorProducao = 100;
+
+//Recupera os valores da EEPROM
+int ppsMotor1 = EEPROM.read(0);
+int offsetMotor1 = EEPROM.read(2);
+int ppsMotor2 = EEPROM.read(10);
+int offsetMotor2 = EEPROM.read(12);
 
 void setup() {
   lcd.begin(16, 2);
@@ -31,6 +36,10 @@ void setup() {
 void loop() {
  if (getClique() == SELECT)
     menuMotor();
+ else
+    atualizaProducao(valorProducao);
+
+ delay(100);
 }
 //lcd.print(EEPROM.read(0));
 //EEPROM.write(0, 0);
@@ -63,20 +72,121 @@ void menuMotor()
     {
       switch(menuMotorIndice)
       {
-        //case 0:
-       //   menuMotor1;
-       // break;
-       // case 1:
-       //   menuMotor2;
-       // break;
+        case 0:
+          menuMotor(1);
+          menuPrincipal();
+          while(getClique() == SELECT);
+          return;
+        break;
+        case 1:
+          menuMotor(2);
+          menuPrincipal();
+          while(getClique() == SELECT);
+          return;
+        break;
         case 2:
           menuPrincipal();
+          while(getClique() == SELECT);
           return;
         break;
       }
     }
   }
 }
+
+void menuMotor(int nmroMotor)
+{
+  while(getClique() == SELECT);
+  int index = 1;
+  //Imprime o menu do motor correspondente
+  lcd.clear();
+  lcd.setCursor(0,0);
+  
+  if (nmroMotor == 1)
+    lcd.print("-> Offset: " + String(offsetMotor1));
+  else
+    lcd.print("-> Offset: " + String(offsetMotor2));
+    
+  lcd.setCursor(0,1);
+   if (nmroMotor == 1)
+    lcd.print("   Pulsos/s: " + String(ppsMotor1));
+  else
+    lcd.print("   Pulsos/s: " + String(ppsMotor2));
+
+  while(true)
+  {
+    if(getClique() == SELECT)
+    {
+      EEPROM.update(0, ppsMotor1);
+      EEPROM.update(2, offsetMotor1);
+      EEPROM.update(10, ppsMotor2);
+      EEPROM.update(12, offsetMotor2);
+      
+      menuPrincipal();
+      while(getClique() == SELECT);
+      return;
+    }
+
+    if(getClique() == LEFT)
+    {
+      limparLinha(index);
+      if (index == 1)
+      {
+        if (nmroMotor == 1)
+          lcd.print("-> Offset: " + String(--offsetMotor1));
+        else
+          lcd.print("-> Offset: " + String(--offsetMotor2));
+      }else
+      {
+        if (nmroMotor == 1)
+          lcd.print("-> Pulsos/s: " + String(--ppsMotor1));
+        else
+          lcd.print("-> Pulsos/s: " + String(--ppsMotor2));
+      }
+      delay(50);
+    }
+
+    if(getClique() == RIGHT)
+    {
+      limparLinha(index);
+      if (index == 1)
+      {
+        if (nmroMotor == 1)
+          lcd.print("-> Offset: " + String(++offsetMotor1));
+        else
+          lcd.print("-> Offset: " + String(++offsetMotor2));
+      }else
+      {
+        if (nmroMotor == 1)
+          lcd.print("-> Pulsos/s: " + String(++ppsMotor1));
+        else
+          lcd.print("-> Pulsos/s: " + String(++ppsMotor2));
+      }
+      delay(50);
+    }
+
+    if(getClique() == UP)
+    {
+      index = 1;
+      lcd.setCursor(0,0);
+      lcd.print("-> ");
+      lcd.setCursor(0,1);
+      lcd.print("   ");
+      delay(100);
+    }
+
+     if(getClique() == DOWN)
+    {
+      index = 2;
+      lcd.setCursor(0,0);
+      lcd.print("   ");
+      lcd.setCursor(0,1);
+      lcd.print("-> ");
+      delay(100);
+    }
+  } 
+}
+
 void limparLinha(int line)
 {
   lcd.setCursor(0, line - 1);
@@ -112,7 +222,7 @@ void menuMotor_imprime()
     case 2:
       lcd.clear();
       lcd.setCursor(0,0);
-      lcd.print("-> " + MenuMotor[menuMotorIndice] + menuMotorIndice);
+      lcd.print("-> " + MenuMotor[menuMotorIndice]);
       lcd.setCursor(0,1);
       lcd.print("   " + MenuMotor[menuMotorIndice + 1]);
     break;
@@ -164,5 +274,5 @@ void menuPrincipal()
   lcd.setCursor(0, 0);
   lcd.print("    CLARAMAQ    ");
   lcd.setCursor(0, 1);
-  lcd.print("Producao:" + valorProducao);
+  lcd.print("Producao:" + String(valorProducao));
 }
